@@ -1,1 +1,1 @@
-# imager
+just enter prompt and boom
