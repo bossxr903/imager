@@ -2,733 +2,637 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NX—AI Image Generator</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>NX—AI Image Generator | Worker API</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
   :root {
-    --bg: #080a0f;
-    --surface: #0f1117;
-    --border: #1e2230;
-    --accent: #e8ff47;
-    --accent2: #47c8ff;
-    --text: #e8eaf0;
-    --muted: #6b7280;
-    --danger: #ff4747;
+    --bg-dark: #05070a;
+    --bg-surface: #0a0d14;
+    --border-dim: #151b26;
+    --accent-neon: #d7ff2e;
+    --accent-cyan: #3efff0;
+    --text-primary: #f0f3fa;
+    --text-muted: #7c85a0;
+    --error-red: #ff4d6d;
   }
-
-  html { scroll-behavior: smooth; }
 
   body {
-    background: var(--bg);
-    color: var(--text);
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
     font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
     overflow-x: hidden;
+    position: relative;
   }
 
-  /* BACKGROUND GRID */
-  body::before {
-    content: '';
+  /* Animated Grid Background */
+  .bg-grid {
     position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+      linear-gradient(var(--border-dim) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border-dim) 1px, transparent 1px);
     background-size: 60px 60px;
-    pointer-events: none;
+    opacity: 0.25;
     z-index: 0;
+    pointer-events: none;
   }
 
-  /* NOISE OVERLAY */
-  body::after {
-    content: '';
+  .bg-glow {
     position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
+    top: -20%;
+    left: -20%;
+    width: 140%;
+    height: 140%;
+    background: radial-gradient(circle at 30% 20%, rgba(215,255,46,0.08), transparent 60%);
     z-index: 0;
-    opacity: 0.4;
+    pointer-events: none;
   }
 
-  /* NAV */
-  nav {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
+  /* Layout */
+  .container {
+    position: relative;
+    z-index: 2;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 32px 64px;
+  }
+
+  /* Navbar */
+  .navbar {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 20px 48px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(8,10,15,0.85);
-    backdrop-filter: blur(20px);
+    align-items: center;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-dim);
+    margin-bottom: 48px;
+    flex-wrap: wrap;
   }
 
   .logo {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    letter-spacing: 4px;
-    color: var(--accent);
+    font-size: 2.2rem;
+    letter-spacing: 6px;
     text-decoration: none;
+    color: var(--accent-neon);
   }
+  .logo span { color: var(--text-primary); font-weight: 400; }
 
-  .logo span { color: var(--text); }
-
-  .nav-tag {
+  .status-badge {
     font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    color: var(--muted);
-    border: 1px solid var(--border);
+    font-size: 0.7rem;
     padding: 6px 14px;
-    border-radius: 2px;
+    background: rgba(21, 27, 38, 0.7);
+    border: 1px solid var(--border-dim);
+    border-radius: 30px;
+    color: var(--accent-cyan);
+    backdrop-filter: blur(4px);
   }
 
-  /* HERO */
+  /* Hero */
   .hero {
-    position: relative;
-    z-index: 1;
-    padding: 160px 48px 80px;
-    max-width: 900px;
-    margin: 0 auto;
     text-align: center;
+    margin-bottom: 56px;
   }
 
   .hero-badge {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    color: var(--accent);
-    border: 1px solid rgba(232,255,71,0.3);
-    padding: 7px 16px;
-    border-radius: 2px;
-    margin-bottom: 32px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+    font-size: 0.7rem;
+    background: rgba(215, 255, 46, 0.08);
+    border: 1px solid rgba(215, 255, 46, 0.4);
+    padding: 6px 16px;
+    border-radius: 40px;
+    margin-bottom: 24px;
+    letter-spacing: 1px;
   }
-
   .hero-badge::before {
     content: '';
-    width: 6px; height: 6px;
-    background: var(--accent);
+    width: 8px;
+    height: 8px;
+    background: var(--accent-neon);
     border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.8); }
+    animation: pulse 1.6s infinite;
   }
 
   h1 {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(64px, 10vw, 120px);
-    line-height: 0.9;
+    font-size: clamp(3.8rem, 10vw, 6.5rem);
+    line-height: 1.1;
     letter-spacing: 2px;
-    color: var(--text);
+  }
+  h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--accent-neon), var(--accent-cyan));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .subhead {
+    color: var(--text-muted);
+    max-width: 540px;
+    margin: 20px auto 0;
+    font-size: 1rem;
+    font-weight: 400;
+  }
+
+  /* Generator Card */
+  .generator-card {
+    background: rgba(10, 13, 20, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-dim);
+    border-radius: 36px;
+    padding: 32px;
+    margin-bottom: 56px;
+    transition: all 0.2s;
+    box-shadow: 0 20px 35px -12px rgba(0,0,0,0.5);
+  }
+
+  .input-group {
     margin-bottom: 24px;
   }
 
-  h1 em {
-    font-style: normal;
-    color: var(--accent);
+  label {
     display: block;
-  }
-
-  .hero-sub {
-    color: var(--muted);
-    font-size: 16px;
-    font-weight: 300;
-    max-width: 480px;
-    margin: 0 auto 56px;
-    line-height: 1.7;
-  }
-
-  /* GENERATOR CARD */
-  .generator {
-    position: relative;
-    z-index: 1;
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 0 24px 80px;
-  }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 32px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
-  }
-
-  .input-label {
     font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 2px;
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    margin-bottom: 12px;
-    display: block;
-  }
-
-  .prompt-wrap {
-    position: relative;
-    margin-bottom: 20px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
   }
 
   textarea {
     width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    line-height: 1.6;
+    background: #010101;
+    border: 1px solid var(--border-dim);
+    border-radius: 24px;
     padding: 16px 20px;
-    resize: none;
-    height: 100px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    color: var(--text-primary);
+    resize: vertical;
+    transition: 0.2s;
+  }
+
+  textarea:focus {
     outline: none;
-    transition: border-color 0.2s;
+    border-color: var(--accent-neon);
+    box-shadow: 0 0 0 2px rgba(215,255,46,0.2);
   }
 
-  textarea:focus { border-color: rgba(232,255,71,0.4); }
-  textarea::placeholder { color: var(--muted); }
-
-  .options-row {
+  .controls-row {
     display: flex;
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 20px;
     flex-wrap: wrap;
+    margin-bottom: 28px;
   }
 
-  .select-wrap {
+  .select-wrapper {
     flex: 1;
-    min-width: 140px;
   }
 
   select {
     width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text);
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    padding: 12px 16px;
-    outline: none;
+    background: #010101;
+    border: 1px solid var(--border-dim);
+    border-radius: 40px;
+    padding: 12px 18px;
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
     cursor: pointer;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237c85a0' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 14px center;
-    transition: border-color 0.2s;
+    background-position: right 18px center;
   }
 
-  select:focus { border-color: rgba(232,255,71,0.4); }
-
-  .btn-generate {
+  .generate-btn {
     width: 100%;
-    background: var(--accent);
-    color: #0a0c10;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 20px;
-    letter-spacing: 4px;
+    background: var(--accent-neon);
     border: none;
-    border-radius: 3px;
-    padding: 18px;
+    border-radius: 60px;
+    padding: 16px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+    color: #05070a;
+    font-weight: bold;
     cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .btn-generate:hover {
-    background: #f5ff70;
-    transform: translateY(-1px);
-    box-shadow: 0 8px 32px rgba(232,255,71,0.25);
-  }
-
-  .btn-generate:active { transform: translateY(0); }
-
-  .btn-generate:disabled {
-    background: var(--border);
-    color: var(--muted);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-
-  .btn-generate .spinner {
-    display: none;
-    width: 18px; height: 18px;
-    border: 2px solid rgba(0,0,0,0.2);
-    border-top-color: #000;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    margin: 0 auto;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .btn-generate.loading .btn-text { display: none; }
-  .btn-generate.loading .spinner { display: block; }
-
-  /* RESULTS */
-  .results-section {
-    position: relative;
-    z-index: 1;
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 0 24px 120px;
-  }
-
-  .results-header {
+    transition: transform 0.15s, box-shadow 0.2s;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
+    justify-content: center;
+    gap: 12px;
+  }
+  .generate-btn:hover {
+    transform: scale(0.98);
+    box-shadow: 0 8px 26px rgba(215,255,46,0.3);
+  }
+  .generate-btn:disabled {
+    opacity: 0.6;
+    transform: none;
+    cursor: not-allowed;
   }
 
-  .results-title {
+  /* Stats */
+  .stats-panel {
+    display: flex;
+    gap: 28px;
+    padding: 20px 0;
+    margin-bottom: 32px;
+    border-top: 1px solid var(--border-dim);
+    border-bottom: 1px solid var(--border-dim);
+  }
+  .stat-item .value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--accent-neon);
+  }
+  .stat-item .label {
     font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 2px;
-    text-transform: uppercase;
+    font-size: 0.65rem;
+    color: var(--text-muted);
   }
 
-  .results-count {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    color: var(--accent);
-  }
-
+  /* Grid */
   .image-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
+    gap: 28px;
+    margin-top: 20px;
   }
 
-  .image-item {
-    position: relative;
-    border: 1px solid var(--border);
-    border-radius: 4px;
+  .image-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-dim);
+    border-radius: 28px;
     overflow: hidden;
-    background: var(--surface);
+    transition: all 0.3s ease;
     opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.2s;
-    cursor: pointer;
+    transform: translateY(24px);
   }
-
-  .image-item.visible {
+  .image-card.reveal {
     opacity: 1;
     transform: translateY(0);
   }
-
-  .image-item:hover { border-color: rgba(232,255,71,0.3); }
-
-  .image-item img {
+  .image-card img {
     width: 100%;
-    aspect-ratio: 1;
+    aspect-ratio: 1 / 1;
     object-fit: cover;
     display: block;
+    transition: transform 0.3s;
   }
-
-  .image-item .img-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to top, rgba(8,10,15,0.9) 0%, transparent 50%);
-    opacity: 0;
-    transition: opacity 0.2s;
+  .image-card:hover img {
+    transform: scale(1.02);
+  }
+  .card-footer {
     display: flex;
-    align-items: flex-end;
-    padding: 16px;
-    gap: 8px;
+    gap: 12px;
+    padding: 14px;
+    border-top: 1px solid var(--border-dim);
+    background: #05070a;
   }
-
-  .image-item:hover .img-overlay { opacity: 1; }
-
-  .img-btn {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 1px;
-    padding: 8px 14px;
-    border-radius: 2px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.15s;
-    text-decoration: none;
-    display: inline-block;
-  }
-
-  .img-btn-dl {
-    background: var(--accent);
-    color: #000;
-  }
-
-  .img-btn-dl:hover { background: #f5ff70; }
-
-  .img-btn-view {
-    background: rgba(255,255,255,0.1);
-    color: var(--text);
-    border: 1px solid rgba(255,255,255,0.15);
-  }
-
-  .img-btn-view:hover { background: rgba(255,255,255,0.2); }
-
-  .img-index {
-    position: absolute;
-    top: 12px; left: 12px;
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    color: var(--accent);
-    background: rgba(8,10,15,0.8);
-    padding: 4px 8px;
-    border-radius: 2px;
-    border: 1px solid rgba(232,255,71,0.2);
-  }
-
-  /* SKELETON */
-  .skeleton {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-
-  .skeleton-img {
-    width: 100%;
-    aspect-ratio: 1;
-    background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-  }
-
-  @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  /* ERROR */
-  .error-box {
-    background: rgba(255,71,71,0.08);
-    border: 1px solid rgba(255,71,71,0.25);
-    border-radius: 3px;
-    padding: 16px 20px;
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    color: var(--danger);
-    display: none;
-    margin-bottom: 20px;
-  }
-
-  /* STATS */
-  .stats-bar {
-    display: flex;
-    gap: 32px;
-    padding: 24px 0;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 40px;
-    flex-wrap: wrap;
-  }
-
-  .stat {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .stat-val {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    color: var(--accent);
-    line-height: 1;
-  }
-
-  .stat-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-
-  /* FOOTER */
-  footer {
-    position: relative;
-    z-index: 1;
+  .card-footer button, .card-footer a {
+    flex: 1;
     text-align: center;
-    padding: 24px;
-    border-top: 1px solid var(--border);
+    background: rgba(21,27,38,0.8);
+    border: none;
+    padding: 10px 0;
+    border-radius: 40px;
     font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  footer span { color: var(--accent); }
-
-  /* MODAL */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(8,10,15,0.95);
-    z-index: 1000;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-  }
-
-  .modal-overlay.open { display: flex; }
-
-  .modal-img {
-    max-width: 90vw;
-    max-height: 90vh;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    box-shadow: 0 40px 120px rgba(0,0,0,0.8);
-  }
-
-  .modal-close {
-    position: fixed;
-    top: 24px; right: 24px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    width: 40px; height: 40px;
-    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
+    transition: 0.2s;
+    text-decoration: none;
+    color: var(--text-primary);
+  }
+  .card-footer button:hover, .card-footer a:hover {
+    background: var(--accent-neon);
+    color: #05070a;
   }
 
-  .modal-close:hover {
-    background: var(--danger);
-    border-color: var(--danger);
+  .loading-skeleton {
+    background: #0f121b;
+    border-radius: 28px;
+    aspect-ratio: 1;
+    background: linear-gradient(110deg, #0a0d14 8%, #151b26 18%, #0a0d14 33%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s linear infinite;
   }
-
-  @media (max-width: 600px) {
-    nav { padding: 16px 20px; }
-    .hero { padding: 120px 20px 60px; }
-    .generator, .results-section { padding-left: 16px; padding-right: 16px; }
-    .stats-bar { gap: 20px; }
+  @keyframes shimmer {
+    to { background-position: -200% 0; }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1);}
+    50% { opacity: 0.5; transform: scale(0.9);}
+  }
+  .error-toast {
+    background: rgba(255,77,109,0.1);
+    border: 1px solid var(--error-red);
+    border-radius: 40px;
+    padding: 14px 20px;
+    margin-bottom: 24px;
+    color: var(--error-red);
+    font-family: monospace;
+    display: none;
+  }
+  footer {
+    text-align: center;
+    margin-top: 80px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-dim);
+    padding-top: 32px;
+  }
+  @media (max-width: 640px) {
+    .container { padding: 16px; }
+    .generator-card { padding: 20px; }
   }
 </style>
 </head>
 <body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
 
-<nav>
-  <a class="logo" href="#">NX<span>.</span>AI</a>
-  <div class="nav-tag">POWERED BY NEXUS AI</div>
-</nav>
+<div class="container">
+  <div class="navbar">
+    <a class="logo" href="#">NX<span>.AI</span></a>
+    <div class="status-badge">⚡ ACTIVE · WORKER API</div>
+  </div>
 
-<section class="hero">
-  <div class="hero-badge">Text to Image Generator</div>
-  <h1>IMAGINE <em>ANYTHING</em></h1>
-  <p class="hero-sub">Describe your vision in words. Our AI transforms it into stunning, high-resolution imagery in seconds.</p>
-</section>
+  <div class="hero">
+    <div class="hero-badge">TEXT → IMAGE · FAST WORKER</div>
+    <h1>VISUALIZE <em>BEYOND LIMITS</em></h1>
+    <p class="subhead">Supercharged AI worker that turns your words into high‑quality visuals instantly.</p>
+  </div>
 
-<section class="generator">
-  <div class="card">
-    <label class="input-label" for="prompt">Your Prompt</label>
-    <div class="prompt-wrap">
-      <textarea id="prompt" placeholder="A futuristic city at dusk, neon reflections on wet streets, cinematic lighting..."></textarea>
+  <div class="generator-card">
+    <div class="input-group">
+      <label>📌 YOUR PROMPT</label>
+      <textarea id="promptInput" rows="2" placeholder="a beautiful girl, ethereal, soft cinematic lighting, intricate details..."></textarea>
     </div>
-
-    <div class="options-row">
-      <div class="select-wrap">
-        <label class="input-label">Number of Images</label>
-        <select id="count">
-          <option value="1">1 Image</option>
-          <option value="2" selected>2 Images</option>
-          <option value="3">3 Images</option>
-          <option value="4">4 Images</option>
+    <div class="controls-row">
+      <div class="select-wrapper">
+        <label>🎞️ NUMBER</label>
+        <select id="countSelect">
+          <option value="1">1 IMAGE</option>
+          <option value="2" selected>2 IMAGES</option>
+          <option value="3">3 IMAGES</option>
+          <option value="4">4 IMAGES</option>
         </select>
       </div>
-      <div class="select-wrap">
-        <label class="input-label">Style</label>
-        <select id="style">
-          <option value="">None</option>
-          <option value="photorealistic">Photorealistic</option>
-          <option value="digital art">Digital Art</option>
-          <option value="oil painting">Oil Painting</option>
-          <option value="watercolor">Watercolor</option>
-          <option value="3D render">3D Render</option>
-          <option value="anime style">Anime</option>
-          <option value="cinematic">Cinematic</option>
-          <option value="concept art">Concept Art</option>
+      <div class="select-wrapper">
+        <label>🎨 STYLE PRESET</label>
+        <select id="styleSelect">
+          <option value="">DEFAULT</option>
+          <option value="photorealistic">PHOTOREALISTIC</option>
+          <option value="cinematic">CINEMATIC</option>
+          <option value="anime">ANIME</option>
+          <option value="fantasy art">FANTASY ART</option>
+          <option value="watercolor">WATERCOLOR</option>
+          <option value="cyberpunk">CYBERPUNK</option>
         </select>
       </div>
     </div>
-
-    <div class="error-box" id="errorBox"></div>
-
-    <button class="btn-generate" id="generateBtn" onclick="generateImages()">
-      <span class="btn-text">GENERATE IMAGES</span>
-      <div class="spinner"></div>
+    <div id="errorBox" class="error-toast"></div>
+    <button class="generate-btn" id="generateBtn">
+      <span>✦ GENERATE</span>
     </button>
   </div>
-</section>
 
-<section class="results-section" id="resultsSection" style="display:none">
-  <div class="stats-bar">
-    <div class="stat">
-      <div class="stat-val" id="statCount">0</div>
-      <div class="stat-label">Images Generated</div>
+  <div id="resultsSection" style="display: none;">
+    <div class="stats-panel">
+      <div class="stat-item"><div class="value" id="statTotal">0</div><div class="label">TOTAL ASSETS</div></div>
+      <div class="stat-item"><div class="value">1K+</div><div class="label">RESOLUTION</div></div>
+      <div class="stat-item"><div class="value" id="statTime">—</div><div class="label">LATENCY</div></div>
     </div>
-    <div class="stat">
-      <div class="stat-val">1024</div>
-      <div class="stat-label">Resolution (px)</div>
-    </div>
-    <div class="stat">
-      <div class="stat-val" id="statTime">0s</div>
-      <div class="stat-label">Generation Time</div>
-    </div>
+    <div class="image-grid" id="imageGrid"></div>
   </div>
-
-  <div class="results-header">
-    <div class="results-title">Generated Images</div>
-    <div class="results-count" id="resultsCount"></div>
-  </div>
-
-  <div class="image-grid" id="imageGrid"></div>
-</section>
-
-<footer>
-  Built with <span>NEXUS AI Generator</span> — Powered by NX RAHMAN&nbsp;|&nbsp;
-</footer>
-
-<!-- Modal -->
-<div class="modal-overlay" id="modal" onclick="closeModal(event)">
-  <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">✕</button>
-  <img class="modal-img" id="modalImg" src="" alt="">
+  
+  <footer>NX AI Engine · Powered by custom Worker API · Instant generation</footer>
 </div>
 
 <script>
-  let totalGenerated = 0;
-
-  async function generateImages() {
-    const promptEl = document.getElementById('prompt');
-    const btn = document.getElementById('generateBtn');
+  (function(){
+    // ---------- DOM elements ----------
+    const promptInput = document.getElementById('promptInput');
+    const countSelect = document.getElementById('countSelect');
+    const styleSelect = document.getElementById('styleSelect');
+    const generateBtn = document.getElementById('generateBtn');
     const errorBox = document.getElementById('errorBox');
-    const grid = document.getElementById('imageGrid');
     const resultsSection = document.getElementById('resultsSection');
-    const styleEl = document.getElementById('style');
-    const countEl = document.getElementById('count');
+    const imageGrid = document.getElementById('imageGrid');
+    const statTotalSpan = document.getElementById('statTotal');
+    const statTimeSpan = document.getElementById('statTime');
 
-    const rawPrompt = promptEl.value.trim();
-    if (!rawPrompt) {
-      errorBox.textContent = 'Please enter a prompt to generate images.';
+    let totalGeneratedCount = 0;
+
+    // Helper: show / hide error
+    function showError(msg) {
+      errorBox.textContent = msg;
       errorBox.style.display = 'block';
-      return;
+      setTimeout(() => {
+        errorBox.style.display = 'none';
+      }, 5000);
     }
 
-    errorBox.style.display = 'none';
+    function hideError() { errorBox.style.display = 'none'; }
 
-    // Build final prompt
-    const styleVal = styleEl.value;
-    const finalPrompt = styleVal ? `${rawPrompt}, ${styleVal}` : rawPrompt;
-    const count = parseInt(countEl.value);
+    // Main generation function using your specific worker API
+    async function generateImages() {
+      // 1. Get values
+      let rawPrompt = promptInput.value.trim();
+      if (!rawPrompt) {
+        showError('✧ Please enter a prompt before generating.');
+        return;
+      }
+      hideError();
 
-    // Loading state
-    btn.disabled = true;
-    btn.classList.add('loading');
-    grid.innerHTML = '';
-
-    // Show skeletons
-    resultsSection.style.display = 'block';
-    for (let i = 0; i < count; i++) {
-      const sk = document.createElement('div');
-      sk.className = 'skeleton';
-      sk.innerHTML = '<div class="skeleton-img"></div>';
-      grid.appendChild(sk);
-    }
-    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    const startTime = Date.now();
-
-    try {
-      const apiUrl = `https://fast-dev-apis.vercel.app/seaart?prompt=${encodeURIComponent(finalPrompt)}&count=${count}`;
-      // Use CORS proxy to bypass browser CORS restrictions
-      const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(apiUrl)}`;
-      const response = await fetch(proxyUrl);
-
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-      const data = await response.json();
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-
-      if (!data.status || !data.images?.length) {
-        throw new Error(data.message || 'No images returned. Try a different prompt.');
+      const styleVal = styleSelect.value;
+      let finalPrompt = rawPrompt;
+      if (styleVal && styleVal !== "") {
+        finalPrompt = `${rawPrompt}, ${styleVal} style, high quality`;
       }
 
-      // Update stats
-      totalGenerated += data.images.length;
-      document.getElementById('statCount').textContent = totalGenerated;
-      document.getElementById('statTime').textContent = elapsed + 's';
-      document.getElementById('resultsCount').textContent = `${data.images.length} result${data.images.length > 1 ? 's' : ''}`;
-
-      // Render images
-      grid.innerHTML = '';
-      data.images.forEach((img, i) => {
-        const item = document.createElement('div');
-        item.className = 'image-item';
-        item.innerHTML = `
-          <span class="img-index">#${String(i + 1).padStart(2, '0')}</span>
-          <img src="${img.url}" alt="Generated image ${i + 1}" loading="lazy" onerror="this.closest('.image-item').style.display='none'">
-          <div class="img-overlay">
-            <a class="img-btn img-btn-dl" href="${img.url}" download="visio-${Date.now()}-${i+1}.webp" target="_blank">DOWNLOAD</a>
-            <button class="img-btn img-btn-view" onclick="openModal('${img.url}')">EXPAND</button>
-          </div>
-        `;
-        grid.appendChild(item);
-        requestAnimationFrame(() => setTimeout(() => item.classList.add('visible'), i * 120));
-      });
-
-    } catch (err) {
-      grid.innerHTML = '';
-      errorBox.textContent = err.message || 'Something went wrong. Please try again.';
-      errorBox.style.display = 'block';
-      resultsSection.style.display = 'none';
-    } finally {
-      btn.disabled = false;
-      btn.classList.remove('loading');
+      const count = parseInt(countSelect.value, 10);
+      
+      // 2. UI Loading state
+      generateBtn.disabled = true;
+      generateBtn.innerHTML = `<div style="width:20px;height:20px;border:2px solid #000;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;"></div> GENERATING...`;
+      
+      // Show results section and skeletons
+      resultsSection.style.display = 'block';
+      imageGrid.innerHTML = '';
+      for (let i = 0; i < count; i++) {
+        const skeletonCard = document.createElement('div');
+        skeletonCard.className = 'loading-skeleton';
+        skeletonCard.style.borderRadius = '28px';
+        imageGrid.appendChild(skeletonCard);
+      }
+      
+      const startPerf = performance.now();
+      
+      try {
+        // 3. Build image URLs based on the worker API you provided
+        // Example: https://ai-generator.rakibsarvar12.workers.dev/?text=your%20prompt
+        // This API returns direct image. We'll add a unique cache-buster so each image is fresh.
+        const generatedUrls = [];
+        for (let i = 0; i < count; i++) {
+          // Add variation using seed param + timestamp to avoid identical generations
+          const seedParam = Date.now() + i + Math.floor(Math.random() * 10000);
+          // Encoding the final prompt properly
+          const encodedPrompt = encodeURIComponent(finalPrompt);
+          // The worker endpoint – returns image directly
+          const imageUrl = `https://ai-generator.rakibsarvar12.workers.dev/?text=${encodedPrompt}&_cb=${seedParam}`;
+          generatedUrls.push(imageUrl);
+        }
+        
+        const elapsedTime = ((performance.now() - startPerf) / 1000).toFixed(1);
+        
+        // 4. Update stats
+        totalGeneratedCount += count;
+        statTotalSpan.innerText = totalGeneratedCount;
+        statTimeSpan.innerText = `${elapsedTime}s`;
+        
+        // 5. Clear skeletons and render actual images
+        imageGrid.innerHTML = '';
+        
+        generatedUrls.forEach((url, idx) => {
+          const card = document.createElement('div');
+          card.className = 'image-card';
+          
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = `AI Gen ${idx+1}`;
+          img.loading = 'lazy';
+          
+          // if any image fails to load, replace with placeholder
+          img.onerror = () => {
+            img.src = 'https://placehold.co/1024x1024/151b26/7c85a0?text=ERROR+LOADING';
+          };
+          
+          const footerDiv = document.createElement('div');
+          footerDiv.className = 'card-footer';
+          
+          const downloadBtn = document.createElement('a');
+          downloadBtn.href = url;
+          downloadBtn.download = `nx_ai_${Date.now()}_${idx+1}.png`;
+          downloadBtn.textContent = '⬇ DOWNLOAD';
+          downloadBtn.target = '_blank';
+          
+          const expandBtn = document.createElement('button');
+          expandBtn.textContent = '🔍 EXPAND';
+          expandBtn.onclick = (e) => {
+            e.preventDefault();
+            openModalWindow(url);
+          };
+          
+          footerDiv.appendChild(downloadBtn);
+          footerDiv.appendChild(expandBtn);
+          card.appendChild(img);
+          card.appendChild(footerDiv);
+          imageGrid.appendChild(card);
+          
+          // Smooth reveal animation
+          requestAnimationFrame(() => {
+            card.classList.add('reveal');
+          });
+        });
+        
+        // Scroll to results smoothly
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+      } catch (err) {
+        console.error(err);
+        showError('Network / worker error: unable to generate. ' + err.message);
+        imageGrid.innerHTML = '';
+        resultsSection.style.display = 'none';
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = `✦ GENERATE`;
+      }
     }
-  }
-
-  function openModal(url) {
-    document.getElementById('modalImg').src = url;
-    document.getElementById('modal').classList.add('open');
-  }
-
-  function closeModal(e) {
-    if (e.target.id === 'modal') {
-      document.getElementById('modal').classList.remove('open');
+    
+    // Modal function for expanded view
+    function openModalWindow(imgUrl) {
+      // Create a simple lightbox if not exists or recreate
+      let modal = document.getElementById('dynamicModal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'dynamicModal';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0,0,0,0.96)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '9999';
+        modal.style.backdropFilter = 'blur(10px)';
+        modal.style.cursor = 'pointer';
+        const modalImg = document.createElement('img');
+        modalImg.style.maxWidth = '90vw';
+        modalImg.style.maxHeight = '90vh';
+        modalImg.style.borderRadius = '28px';
+        modalImg.style.boxShadow = '0 25px 40px black';
+        modalImg.id = 'modalImgPreview';
+        modal.appendChild(modalImg);
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '✕';
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.top = '24px';
+        closeBtn.style.right = '32px';
+        closeBtn.style.background = '#151b26';
+        closeBtn.style.border = 'none';
+        closeBtn.style.color = 'white';
+        closeBtn.style.fontSize = '1.6rem';
+        closeBtn.style.padding = '8px 18px';
+        closeBtn.style.borderRadius = '60px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.fontWeight = 'bold';
+        closeBtn.onclick = () => modal.remove();
+        modal.appendChild(closeBtn);
+        modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+        document.body.appendChild(modal);
+      }
+      const modalImgElem = document.getElementById('modalImgPreview');
+      if(modalImgElem) modalImgElem.src = imgUrl;
+      const existingModal = document.getElementById('dynamicModal');
+      if(existingModal) existingModal.style.display = 'flex';
     }
-  }
-
-  document.getElementById('prompt').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.ctrlKey) generateImages();
-  });
+    
+    // Attach event listeners
+    generateBtn.addEventListener('click', generateImages);
+    // Ctrl+Enter shortcut
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        generateImages();
+      }
+    });
+    
+    // add spin keyframes to document
+    const styleSheet = document.createElement("style");
+    styleSheet.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
+    document.head.appendChild(styleSheet);
+  })();
 </script>
 </body>
 </html>
